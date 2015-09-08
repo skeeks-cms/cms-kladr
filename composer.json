@@ -1,0 +1,27 @@
+{
+    "name": "skeeks/cms-kladr",
+    "description": "Kladr для SkeekS CMS",
+    "keywords": ["module", "cms", "skeeks", "sx", "app", "yii2", "kladr"],
+    "homepage": "http://www.skeeks.com/",
+    "type": "yii2-extension",
+    "license": "BSD-3-Clause",
+    "support": {
+        "issues": "http://cms.skeeks.com",
+        "wiki": "http://git.skeeks.com/skeeks/cms/wikis/home",
+        "source": "http://git.skeeks.com/skeeks/cms"
+    },
+    "authors": [
+        {
+            "name": "Semenov Alexander",
+            "email": "semenov@skeeks.com"
+        }
+    ],
+    "require": {
+        "skeeks/cms": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "skeeks\\cms\\kladr\\": ""
+        }
+    }
+}
