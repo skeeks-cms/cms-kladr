@@ -17,7 +17,9 @@
         }
     ],
     "require": {
-        "skeeks/cms": "*"
+        "skeeks/cms": "*",
+        "paulzi/yii2-auto-tree" : "*",
+        "paulzi/yii2-adjacency_list" : "*",
     },
     "autoload": {
         "psr-4": {
