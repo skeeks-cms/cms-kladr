@@ -8,7 +8,11 @@
 return [
 
     'components' =>
-    [],
+    [
+        'kladr' => [
+            'class'         => 'skeeks\cms\kladr\components\KladrComponent',
+        ]
+    ],
 
     'modules' =>
     [

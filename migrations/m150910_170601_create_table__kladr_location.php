@@ -33,6 +33,9 @@ class m150910_170601_create_table__kladr_location extends Migration
             'updated_at'            => $this->integer(),
 
             'name'                  => $this->string(255)->notNull(),
+            'name_short'            => $this->string(255),
+            'name_full'             => $this->string(255),
+
             'zip'                   => $this->string(20),
 
             'okato'                 => $this->string(20),
@@ -54,6 +57,8 @@ class m150910_170601_create_table__kladr_location extends Migration
         $this->createIndex('updated_at', '{{%kladr_location}}', 'updated_at');
 
         $this->createIndex('name', '{{%kladr_location}}', 'name');
+        $this->createIndex('name_short', '{{%kladr_location}}', 'name_short');
+        $this->createIndex('name_full', '{{%kladr_location}}', 'name_full');
         $this->createIndex('zip', '{{%kladr_location}}', 'zip');
         $this->createIndex('okato', '{{%kladr_location}}', 'okato');
         $this->createIndex('type', '{{%kladr_location}}', 'type');

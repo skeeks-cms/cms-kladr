@@ -27,6 +27,18 @@ class Query
     private $withParent;
     private $limit;
 
+
+    public $offset;
+
+    /**
+     *  1 — города
+        2 — поселки
+        4 — деревни
+     *
+     * @var
+     */
+    public $typeCode;
+
     public function __construct()
     {
         $this->parentType  = NULL;
@@ -129,6 +141,16 @@ class Query
         if ($this->limit) {
             if (! empty($string)) $string .= '&';
             $string .= 'limit=' . $this->limit;
+        }
+
+        if ($this->offset) {
+            if (! empty($string)) $string .= '&';
+            $string .= 'offset=' . $this->offset;
+        }
+
+        if ($this->typeCode) {
+            if (! empty($string)) $string .= '&';
+            $string .= 'typeCode=' . $this->typeCode;
         }
 
         return $string;

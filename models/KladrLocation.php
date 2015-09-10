@@ -2,12 +2,15 @@
 /**
  * @author Semenov Alexander <semenov@skeeks.com>
  * @link http://skeeks.com/
- * @copyright 2010 SkeekS (�����)
+ * @copyright 2010 SkeekS (СкикС)
  * @date 10.09.2015
  */
 namespace skeeks\cms\kladr\models;
 
+use paulzi\adjacencylist\AdjacencyListBehavior;
+use paulzi\autotree\AutoTreeTrait;
 use Yii;
+use yii\helpers\ArrayHelper;
 
 /**
  * This is the model class for table "{{%kladr_location}}".
@@ -18,6 +21,8 @@ use Yii;
  * @property integer $created_at
  * @property integer $updated_at
  * @property string $name
+ * @property string $name_short
+ * @property string $name_full
  * @property string $zip
  * @property string $okato
  * @property string $type
@@ -25,15 +30,73 @@ use Yii;
  * @property string $active
  * @property integer $parent_id
  * @property integer $sort
+ *
+ * @property-read string $typeName
+ * @property-read string $fullName
  */
 class KladrLocation extends \skeeks\cms\models\Core
 {
+    /**
+     * Страна
+     */
+    const TYPE_COUNTRY      = 'country';
+
+    /**
+     * Регион, область
+     */
+    const TYPE_REGION       = 'region';
+
+    /**
+     * Район
+     */
+    const TYPE_DISTRICT     = 'district';
+
+    /**
+     * Населенный пункт
+     */
+    const TYPE_CITY         = 'city';
+
+    /**
+     * Улица
+     */
+    const TYPE_STREET       = 'street';
+
+    /**
+     * Строение
+     */
+    const TYPE_BUILDING     = 'building';
+
+    /**
+     * @return array
+     */
+    static public function possibleTypes()
+    {
+        return [
+            self::TYPE_COUNTRY      => 'Страна',
+            self::TYPE_REGION       => 'Регион',
+            self::TYPE_DISTRICT     => 'Район',
+            self::TYPE_CITY         => 'Населенный пункт',
+            self::TYPE_STREET       => 'Улица',
+            self::TYPE_BUILDING     => 'Строение',
+        ];
+    }
+
+
     /**
      * @inheritdoc
      */
     public static function tableName()
     {
         return '{{%kladr_location}}';
+    }
+
+    use AutoTreeTrait;
+
+    public function behaviors()
+    {
+        return [
+            ['class' => AdjacencyListBehavior::className()],
+        ];
     }
 
     /**
@@ -44,7 +107,7 @@ class KladrLocation extends \skeeks\cms\models\Core
         return [
             [['created_by', 'updated_by', 'created_at', 'updated_at', 'parent_id', 'sort'], 'integer'],
             [['name', 'type'], 'required'],
-            [['name'], 'string', 'max' => 255],
+            [['name', 'name_short', 'name_full'], 'string', 'max' => 255],
             [['zip', 'okato', 'kladr_api_id'], 'string', 'max' => 20],
             [['type'], 'string', 'max' => 10],
             [['active'], 'string', 'max' => 1]
@@ -63,14 +126,38 @@ class KladrLocation extends \skeeks\cms\models\Core
             'created_at' => Yii::t('app', 'Created At'),
             'updated_at' => Yii::t('app', 'Updated At'),
             'name' => Yii::t('app', 'Name'),
+            'name_short' => Yii::t('app', 'Полное название (сокр)'),
+            'name_full' => Yii::t('app', 'Полное название'),
             'zip' => Yii::t('app', 'Zip'),
             'okato' => Yii::t('app', 'Okato'),
-            'type' => Yii::t('app', 'Type'),
+            'type' => Yii::t('app', 'Тип'),
             'kladr_api_id' => Yii::t('app', 'Kladr Api ID'),
             'active' => Yii::t('app', 'Active'),
-            'parent_id' => Yii::t('app', 'Parent ID'),
+            'parent_id' => Yii::t('app', 'Родительское местоположение'),
             'sort' => Yii::t('app', 'Sort'),
         ];
+    }
+
+    /**
+     * @return string
+     */
+    public function getTypeName()
+    {
+        return (string) ArrayHelper::getValue(self::possibleTypes(), $this->type);
+    }
+
+    /**
+     * @return string
+     */
+    public function getFullName()
+    {
+        if ($this->name_full)
+        {
+            return $this->name_full;
+        } else
+        {
+            return $this->name;
+        }
     }
 
 }
