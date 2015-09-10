@@ -23,7 +23,7 @@ use skeeks\cms\modules\admin\widgets\form\ActiveFormUseTab as ActiveForm;
         Сервис kladr-api.ru используется для автоматического обновления базы адресов России. На сайте kladr-api.ru необходимо получить токен.
     <? \yii\bootstrap\Alert::end(); ?>
     <?= $form->field($model, 'kladrApiToken')->textInput(['maxlength' => 255]); ?>
-    <?= $form->fieldSelect($model, 'russiaId', \yii\helpers\ArrayHelper::map(\skeeks\cms\kladr\models\KladrLocation::find()->all(),
+    <?= $form->fieldSelect($model, 'russiaId', \yii\helpers\ArrayHelper::map(\skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY])->all(),
         'id', 'name'))
         ->hint('Необходимо указать российское местоположение'); ?>
 

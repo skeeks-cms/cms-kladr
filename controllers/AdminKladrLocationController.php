@@ -44,7 +44,7 @@ class AdminKladrLocationController extends AdminModelEditorController
                             'format'    => 'raw',
                             'value'     => function(KladrLocation $model)
                             {
-                                if ($model->parents)
+                                if ($model->parent_id)
                                 {
                                     return $model->fullName . " <small>(" . implode(", ", ArrayHelper::map($model->parents, 'id', 'fullName')) . ") </small>";
                                 } else
@@ -122,6 +122,16 @@ class AdminKladrLocationController extends AdminModelEditorController
         if ($codeType == KladrLocation::TYPE_CITY)
         {
             $this->_importCities($char);
+        }
+
+        if ($codeType == KladrLocation::TYPE_VILLAGE)
+        {
+            $this->_importVillages($char, 2);
+        }
+
+        if ($codeType == KladrLocation::TYPE_VILLAGE_SMALL)
+        {
+            $this->_importVillagesSmall($char, 4);
         }
 
         if ($codeType == KladrLocation::TYPE_STREET)
@@ -216,6 +226,113 @@ class AdminKladrLocationController extends AdminModelEditorController
         if (count($arResult) >= 400)
         {
             $this->_importCities($char, 400 + $offset);
+        }
+    }
+
+
+    protected function _importVillages($char, $offset = 0)
+    {
+        if ($offset > 0)
+        {
+            //die;
+        }
+
+
+        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
+
+        $query              = new \skeeks\cms\kladr\libs\Query();
+        $query->ContentName = $char;
+        $query->Limit       = 400;
+        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
+        $query->WithParent  = 1;
+        $query->offset      = $offset;
+
+
+        $query->typeCode    = 2; //поселки
+
+
+        $arResult = $api->QueryToArray($query);
+
+        if ($arResult)
+        {
+            foreach ($arResult as $locationData)
+            {
+                $parents = (array) ArrayHelper::getValue($locationData, 'parents');
+                if (!$parents)
+                {
+                    continue;
+                }
+
+                $parent = $parents[count($parents) - 1];
+                if (!$parent)
+                {
+                    continue;
+                }
+
+                $parentId   = (string) ArrayHelper::getValue($parent, 'id');
+                $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
+
+                $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_VILLAGE);
+            }
+        }
+
+        if (count($arResult) >= 400)
+        {
+            $this->_importVillages($char, 400 + $offset);
+        }
+    }
+
+
+    protected function _importVillagesSmall($char, $offset = 0)
+    {
+        if ($offset > 0)
+        {
+            //die;
+        }
+
+
+        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
+
+        $query              = new \skeeks\cms\kladr\libs\Query();
+        $query->ContentName = $char;
+        $query->Limit       = 400;
+        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
+        $query->WithParent  = 1;
+        $query->offset      = $offset;
+
+
+        $query->typeCode    = 4; //деревни
+
+
+        $arResult = $api->QueryToArray($query);
+
+
+        if ($arResult)
+        {
+            foreach ($arResult as $locationData)
+            {
+                $parents = (array) ArrayHelper::getValue($locationData, 'parents');
+                if (!$parents)
+                {
+                    continue;
+                }
+
+                $parent = $parents[count($parents) - 1];
+                if (!$parent)
+                {
+                    continue;
+                }
+
+                $parentId   = (string) ArrayHelper::getValue($parent, 'id');
+                $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
+
+                $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_VILLAGE_SMALL);
+            }
+        }
+
+        if (count($arResult) >= 400)
+        {
+            $this->_importVillagesSmall($char, 400 + $offset);
         }
     }
 

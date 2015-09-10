@@ -52,9 +52,19 @@ class KladrLocation extends \skeeks\cms\models\Core
     const TYPE_DISTRICT     = 'district';
 
     /**
-     * Населенный пункт
+     * Город
      */
     const TYPE_CITY         = 'city';
+
+    /**
+     * Поселок
+     */
+    const TYPE_VILLAGE         = 'village';
+
+    /**
+     * Деревня
+     */
+    const TYPE_VILLAGE_SMALL         = 'village_sm';
 
     /**
      * Улица
@@ -75,7 +85,9 @@ class KladrLocation extends \skeeks\cms\models\Core
             self::TYPE_COUNTRY      => 'Страна',
             self::TYPE_REGION       => 'Регион',
             self::TYPE_DISTRICT     => 'Район',
-            self::TYPE_CITY         => 'Населенный пункт',
+            self::TYPE_CITY         => 'Город',
+            self::TYPE_VILLAGE      => 'Поселок',
+            self::TYPE_VILLAGE_SMALL=> 'Деревня',
             self::TYPE_STREET       => 'Улица',
             self::TYPE_BUILDING     => 'Строение',
         ];

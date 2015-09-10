@@ -30,32 +30,42 @@
             [
                 'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY,
                 'name'  => 'Страна',
-                'count' => count( \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY])->all() )
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY])->count()
             ],
             [
                 'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_REGION,
                 'name'  => 'Регион',
-                'count' => count( \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_REGION])->all() )
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_REGION])->count()
             ],
             [
                 'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_DISTRICT,
                 'name'  => 'Район',
-                'count' => count( \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_DISTRICT])->all() )
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_DISTRICT])->count()
             ],
             [
                 'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_CITY,
-                'name'  => 'Населенный пункт',
-                'count' => count( \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_CITY])->all() )
+                'name'  => 'Город',
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_CITY])->count()
+            ],
+            [
+                'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_VILLAGE,
+                'name'  => 'Поселок',
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_VILLAGE])->count()
+            ],
+            [
+                'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_VILLAGE_SMALL,
+                'name'  => 'Деревня',
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_VILLAGE_SMALL])->count()
             ],
             [
                 'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_STREET,
                 'name'  => 'Улица',
-                'count' => count( \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_STREET])->all() )
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_STREET])->count()
             ],
             [
                 'type'  => \skeeks\cms\kladr\models\KladrLocation::TYPE_BUILDING,
                 'name'  => 'Строение',
-                'count' => count( \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_BUILDING])->all() )
+                'count' => \skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_BUILDING])->count()
             ],
         ]
     ]),
@@ -77,6 +87,7 @@
             'class'         => \yii\grid\DataColumn::className(),
             'value'         => function($data)
             {
+                $name = \yii\helpers\ArrayHelper::getValue($data, 'name');
                 $type = \yii\helpers\ArrayHelper::getValue($data, 'type');
                 if ($type == \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY)
                 {
@@ -86,7 +97,7 @@
                 return \yii\helpers\Html::a('Запустить импорт', '#', [
                     'class' => 'btn-primary btn btn-xs',
                     'onclick' => new \yii\web\JsExpression(<<<JS
-                    sx.KladrImport.execute('{$type}');
+                    sx.KladrImport.execute('{$type}', '{$name}');
 JS
 )
                 ]);
@@ -96,9 +107,21 @@ JS
 ]); ?>
 
 
+<div class="sx-progress-global" id="sx-progress-global" style="display: none;">
+    <span style="vertical-align:middle;"><h3>Общий процесс (Выполнено <span class="sx-executing-ptc">0</span>%)</h3></span>
+    <span style="vertical-align:middle;"><span class="sx-executing-task-name"></span></span>
+    <div>
+        <div class="progress progress-striped active">
+            <div class="progress-bar progress-bar-success"></div>
+        </div>
+    </div>
+    <hr />
+</div>
+
+
 <div class="sx-progress-tasks" id="sx-progress-tasks" style="display: none;">
-    <span style="vertical-align:middle;"><h3>Процесс (Выполнено <span class="sx-executing-ptc">0</span>%)</h3></span>
-    <span style="vertical-align:middle;">Этап: <span class="sx-executing-task-name"></span></span>
+    <span style="vertical-align:middle;"><h3>Процесс импорта "<span id="sx-executing-name">0</span>" (Выполнено <span class="sx-executing-ptc">0</span>%)</h3></span>
+    <span style="vertical-align:middle;"><span class="sx-executing-task-name"></span></span>
     <div>
         <div class="progress progress-striped active">
             <div class="progress-bar progress-bar-success"></div>
@@ -154,7 +177,13 @@ $this->registerJs(<<<JS
                 'delayQueque' : 500
             });
 
+            this.GlobalTaskManager = new sx.classes.tasks.Manager({
+                'tasks' : [],
+                'delayQueque' : 2000
+            });
+
             this.ProgressBar = new sx.classes.KladrImportProgressBar(this.TaskManager, "#sx-progress-tasks");
+            this.ProgressBarGlobal = new sx.classes.KladrImportProgressBar(this.GlobalTaskManager, "#sx-progress-global");
 
 
             this.TaskManager.bind('start', function()
@@ -173,8 +202,10 @@ $this->registerJs(<<<JS
 
         },
 
-        execute: function(type)
+        execute: function(type, name)
         {
+            $("#sx-executing-name").empty().append(name);
+
             var self = this;
 
             tasks = [];
