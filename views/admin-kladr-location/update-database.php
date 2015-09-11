@@ -127,15 +127,28 @@ JS
             <div class="progress-bar progress-bar-success"></div>
         </div>
     </div>
+
+    <div style="text-align: center">
+        <h1>Всего обработано:   <span id="sx-task-total">0</span></h1>
+        <h1>Добавлено в базу:   <span id="sx-task-yes">0</span></h1>
+        <h1>Пропущено:          <span id="sx-task-no">0</span></h1>
+    </div>
     <hr />
 </div>
 
 <?
 
 $data = [
-    'backend'   => (string) \skeeks\cms\helpers\UrlHelper::construct('kladr/admin-kladr-location/update-database')->enableAdmin(),
-    'abc'       => (array) $abc,
-    'pjaxId'    => 'sx-stat'
+    'backend'           => [
+        \skeeks\cms\kladr\models\KladrLocation::TYPE_REGION    => (string) \skeeks\cms\helpers\UrlHelper::construct('kladr/admin-kladr-location/import-regions')->enableAdmin(),
+        \skeeks\cms\kladr\models\KladrLocation::TYPE_DISTRICT  => (string) \skeeks\cms\helpers\UrlHelper::construct('kladr/admin-kladr-location/import-districts')->enableAdmin(),
+        \skeeks\cms\kladr\models\KladrLocation::TYPE_CITY      => (string) \skeeks\cms\helpers\UrlHelper::construct('kladr/admin-kladr-location/import-cities')->enableAdmin(),
+        \skeeks\cms\kladr\models\KladrLocation::TYPE_VILLAGE   => (string) \skeeks\cms\helpers\UrlHelper::construct('kladr/admin-kladr-location/import-villages')->enableAdmin(),
+        \skeeks\cms\kladr\models\KladrLocation::TYPE_VILLAGE_SMALL   => (string) \skeeks\cms\helpers\UrlHelper::construct('kladr/admin-kladr-location/import-villages-sm')->enableAdmin()
+    ],
+
+    'abc'               => (array) $abc,
+    'pjaxId'            => 'sx-stat'
 ];
 
 $dataJson = \yii\helpers\Json::encode($data);
@@ -145,9 +158,76 @@ $dataJson = \yii\helpers\Json::encode($data);
 $this->registerJs(<<<JS
 (function(sx, $, _)
 {
+
+    sx.classes.KladrImportCharTask = sx.classes.tasks.AjaxTask.extend({
+
+        _initQuery: function()
+        {
+            var self = this;
+
+            new sx.classes.AjaxHandlerNoLoader(this.get("ajaxQuery"));
+
+            this.getAjaxQuery().bind('success', function(e, data)
+            {
+                var nextOffset = Number(data.response.data.nextOffset);
+                if (nextOffset > 0)
+                {
+                    self.trigger("updateData", data.response.data);
+                    self._execute(nextOffset);
+                } else
+                {
+                    self.trigger("complete", {
+                        'task'      : self,
+                        'result'    : data.response.data
+                    });
+
+                    self.trigger("updateData", data.response.data);
+                }
+            });
+
+            this.getAjaxQuery().bind('error', function(e, data)
+            {
+                self.trigger("complete", {
+                    'task'      : self,
+                    'result'    : data
+                });
+            });
+
+            return this;
+        },
+
+        execute: function()
+        {
+            var self = this;
+
+            this.trigger("beforeExecute", {
+                'task' : this
+            });
+
+            this._execute(0);
+        },
+
+        _execute: function(offset)
+        {
+            offset = Number(offset);
+
+            if (offset > 0)
+            {
+                var data = this.getAjaxQuery().getData();
+                data = _.extend(data, {'offset': offset});
+                this.getAjaxQuery().setData(data);
+            }
+
+            this.getAjaxQuery().execute();
+        }
+
+    });
+
+
+
     sx.classes.KladrImportProgressBar = sx.classes.tasks.ProgressBar.extend({
 
-    _init: function()
+        _init: function()
         {
             var self = this;
 
@@ -186,6 +266,12 @@ $this->registerJs(<<<JS
             this.ProgressBarGlobal = new sx.classes.KladrImportProgressBar(this.GlobalTaskManager, "#sx-progress-global");
 
 
+            this.TaskManager.bind("completeTask", function(e, data)
+            {
+                console.log('1');
+                console.log(data);
+            });
+
             this.TaskManager.bind('start', function()
             {
                 self.Blocker  = new sx.classes.Blocker("#" + self.get('pjaxId'));
@@ -200,6 +286,16 @@ $this->registerJs(<<<JS
                 $.pjax.reload('#' + self.get('pjaxId'), {});
             });
 
+            this.total      = 0;
+            this.yes        = 0;
+            this.no         = 0;
+
+            this.bind('updateData', function()
+            {
+                $("#sx-task-total").empty().append(self.total);
+                $("#sx-task-yes").empty().append(self.yes);
+                $("#sx-task-no").empty().append(self.no);
+            });
         },
 
         execute: function(type, name)
@@ -208,25 +304,43 @@ $this->registerJs(<<<JS
 
             var self = this;
 
+            self.total      = 0;
+            self.yes        = 0;
+            self.no         = 0;
+
+            self.trigger('updateData');
+
             tasks = [];
 
             _.each(this.get('abc'), function(char, key)
             {
-                var ajaxQuery = sx.ajax.preparePostQuery(self.get('backend'), {
-                    'char' : char,
-                    'type' : type,
+                var ajaxQuery = sx.ajax.preparePostQuery(self.get('backend')[type], {
+                    'char'      : char,
+                    'type'      : type,
                 });
 
-                new sx.classes.AjaxHandlerNoLoader(ajaxQuery);
+                var task = new sx.classes.KladrImportCharTask(ajaxQuery, {
+                    'name'      :   'На букву ' + char,
+                    'offset'    :   0,
+                });
 
-                tasks.push(new sx.classes.tasks.AjaxTask(ajaxQuery, {
-                    'name':'На букву ' + char,
-                }));
+                task.bind('updateData', function(e, data)
+                {
+                    self.total      = self.total + data.total;
+                    self.yes        = self.yes + data.yes;
+                    self.no         = self.no + data.no;
+
+                    self.trigger('updateData');
+                });
+
+                tasks.push(task);
             });
 
             this.TaskManager.setTasks(tasks);
             this.TaskManager.start();
         },
+
+
     });
 
     sx.KladrImport = new sx.classes.KladrImport({$dataJson});

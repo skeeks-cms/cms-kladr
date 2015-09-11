@@ -81,11 +81,32 @@ class AdminKladrLocationController extends AdminModelEditorController
 
     public function actionUpdateDatabase()
     {
+        return $this->render('update-database', [
+            'abc' => $this->_getAbs()
+        ]);
+    }
+
+    /**
+     * Импорт регионов
+     *
+     * @return array|RequestResponse
+     */
+    public function actionImportRegions()
+    {
         $rr = new RequestResponse();
 
         if ($rr->isRequestAjaxPost())
         {
-            if (!\Yii::$app->kladr->russiaId || !\Yii::$app->kladr->kladrApiToken || !\Yii::$app->request->post('type')|| !\Yii::$app->request->post('char'))
+            $rr->data =
+            [
+                'yes'       => 0,
+                'no'        => 0,
+                'offset'    => \Yii::$app->request->post('offset', 0),
+                'total'     => 0,
+                'nextOffset'=> 0,
+            ];
+
+            if (!\Yii::$app->kladr->isReady() || !\Yii::$app->request->post('char'))
             {
                 $rr->success = false;
                 $rr->message = "Некорректные настройки";
@@ -93,390 +114,399 @@ class AdminKladrLocationController extends AdminModelEditorController
                 return $rr;
             }
 
-            $this->_importLocations(\Yii::$app->request->post('type'), \Yii::$app->request->post('char'));
+            $query              = \Yii::$app->kladr->createApiQuery();
+            $query->ContentName = \Yii::$app->request->post('char');
+            $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::Region;
+            $query->WithParent  = 1;
+            $query->offset      = \Yii::$app->request->post('offset', 0);
 
-            $rr->success = true;
-            $rr->message = "Импорт завершен";
+            $arResult = \Yii::$app->kladr->createApi()->QueryToArray($query);
+
+            $rr->data['total'] = count($arResult);
+
+            if (count($arResult) >= \Yii::$app->kladr->kladrRequestLimit)
+            {
+                $rr->data['nextOffset'] = $rr->data['offset'] + \Yii::$app->kladr->kladrRequestLimit;
+            }
+
+            if ($arResult)
+            {
+                foreach ($arResult as $locationData)
+                {
+                    if ( $this->_writeLocation($locationData, \Yii::$app->kladr->russiaLocation, \skeeks\cms\kladr\libs\ObjectType::Region) )
+                    {
+                        $rr->data['yes'] = $rr->data['yes'] + 1;
+                    } else
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                    }
+                }
+            }
+
+            $rr->success    = true;
+            $rr->message    = "Импорт завершен";
 
             return $rr;
         }
 
-        return $this->render('update-database', [
-            'abc' => $this->_getAbs()
-        ]);
+        return (array) $rr;
     }
 
 
-    protected function _importLocations($codeType, $char)
+    /**
+     * Импорт районов
+     *
+     * @return array|RequestResponse
+     */
+    public function actionImportDistricts()
     {
-        if ($codeType == KladrLocation::TYPE_REGION)
+        $rr = new RequestResponse();
+
+        if ($rr->isRequestAjaxPost())
         {
-            $this->_importRegions($char);
-        }
+            $rr->data =
+            [
+                'yes'       => 0,
+                'no'        => 0,
+                'offset'    => \Yii::$app->request->post('offset', 0),
+                'total'     => 0,
+                'nextOffset'=> 0,
+            ];
 
-        if ($codeType == KladrLocation::TYPE_DISTRICT)
-        {
-            $this->_importDistricts($char);
-        }
-
-        if ($codeType == KladrLocation::TYPE_CITY)
-        {
-            $this->_importCities($char);
-        }
-
-        if ($codeType == KladrLocation::TYPE_VILLAGE)
-        {
-            $this->_importVillages($char, 2);
-        }
-
-        if ($codeType == KladrLocation::TYPE_VILLAGE_SMALL)
-        {
-            $this->_importVillagesSmall($char, 4);
-        }
-
-        if ($codeType == KladrLocation::TYPE_STREET)
-        {
-            $this->_importStreets($char);
-        }
-
-        if ($codeType == KladrLocation::TYPE_BUILDING)
-        {
-            $this->_importBuilding($char);
-        }
-    }
-
-
-    protected function _importRegions($char)
-    {
-        /**
-         * @var $russia KladrLocation
-         */
-        $api    = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-        $russia = KladrLocation::findOne(\Yii::$app->kladr->russiaId);
-
-        if (!$russia)
-        {
-            return false;
-        }
-
-
-
-        $query              = new \skeeks\cms\kladr\libs\Query();
-        $query->Limit       = 400;
-        $query->ContentName = $char;
-        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::Region;
-
-        $arResult = $api->QueryToArray($query);
-
-        if ($arResult)
-        {
-            foreach ($arResult as $locationData)
+            if (!\Yii::$app->kladr->isReady() || !\Yii::$app->request->post('char'))
             {
-                $this->_writeLocation($locationData, $russia, \skeeks\cms\kladr\libs\ObjectType::Region);
+                $rr->success = false;
+                $rr->message = "Некорректные настройки";
+
+                return $rr;
             }
-        }
-    }
 
-    protected function _importCities($char, $offset = 0)
-    {
-        if ($offset > 0)
-        {
-            //die;
-        }
+            /**
+             * @var $region KladrLocation
+             */
+            $regions    = KladrLocation::find()->where(['type' => KladrLocation::TYPE_REGION])->all();
 
-
-        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-
-        $query              = new \skeeks\cms\kladr\libs\Query();
-        $query->ContentName = $char;
-        $query->Limit       = 400;
-        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
-        $query->WithParent  = 1;
-        $query->offset      = $offset;
-
-
-        $query->typeCode    = 1; //только города
-
-
-        $arResult = $api->QueryToArray($query);
-
-        if ($arResult)
-        {
-            foreach ($arResult as $locationData)
+            foreach ($regions as $region)
             {
-                $parents = (array) ArrayHelper::getValue($locationData, 'parents');
-                if (!$parents)
+                if ($region->kladr_api_id)
                 {
-                    continue;
-                }
-
-                $parent = $parents[count($parents) - 1];
-                if (!$parent)
-                {
-                    continue;
-                }
-
-                $parentId   = (string) ArrayHelper::getValue($parent, 'id');
-                $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
-
-                $this->_writeLocation($locationData, $parent, \skeeks\cms\kladr\libs\ObjectType::City);
-            }
-        }
-
-        if (count($arResult) >= 400)
-        {
-            $this->_importCities($char, 400 + $offset);
-        }
-    }
-
-
-    protected function _importVillages($char, $offset = 0)
-    {
-        if ($offset > 0)
-        {
-            //die;
-        }
-
-
-        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-
-        $query              = new \skeeks\cms\kladr\libs\Query();
-        $query->ContentName = $char;
-        $query->Limit       = 400;
-        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
-        $query->WithParent  = 1;
-        $query->offset      = $offset;
-
-
-        $query->typeCode    = 2; //поселки
-
-
-        $arResult = $api->QueryToArray($query);
-
-        if ($arResult)
-        {
-            foreach ($arResult as $locationData)
-            {
-                $parents = (array) ArrayHelper::getValue($locationData, 'parents');
-                if (!$parents)
-                {
-                    continue;
-                }
-
-                $parent = $parents[count($parents) - 1];
-                if (!$parent)
-                {
-                    continue;
-                }
-
-                $parentId   = (string) ArrayHelper::getValue($parent, 'id');
-                $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
-
-                $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_VILLAGE);
-            }
-        }
-
-        if (count($arResult) >= 400)
-        {
-            $this->_importVillages($char, 400 + $offset);
-        }
-    }
-
-
-    protected function _importVillagesSmall($char, $offset = 0)
-    {
-        if ($offset > 0)
-        {
-            //die;
-        }
-
-
-        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-
-        $query              = new \skeeks\cms\kladr\libs\Query();
-        $query->ContentName = $char;
-        $query->Limit       = 400;
-        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
-        $query->WithParent  = 1;
-        $query->offset      = $offset;
-
-
-        $query->typeCode    = 4; //деревни
-
-
-        $arResult = $api->QueryToArray($query);
-
-
-        if ($arResult)
-        {
-            foreach ($arResult as $locationData)
-            {
-                $parents = (array) ArrayHelper::getValue($locationData, 'parents');
-                if (!$parents)
-                {
-                    continue;
-                }
-
-                $parent = $parents[count($parents) - 1];
-                if (!$parent)
-                {
-                    continue;
-                }
-
-                $parentId   = (string) ArrayHelper::getValue($parent, 'id');
-                $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
-
-                $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_VILLAGE_SMALL);
-            }
-        }
-
-        if (count($arResult) >= 400)
-        {
-            $this->_importVillagesSmall($char, 400 + $offset);
-        }
-    }
-
-
-    protected function _importStreets($char, $offset = 0)
-    {
-        if ($offset > 0)
-        {
-            //die;
-        }
-
-
-        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-
-        $query              = new \skeeks\cms\kladr\libs\Query();
-        $query->ContentName = $char;
-        $query->Limit       = 400;
-        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::Street;
-        $query->WithParent  = 1;
-        $query->offset      = $offset;
-
-
-        $query->typeCode    = 1; //только города
-
-
-        $arResult = $api->QueryToArray($query);
-
-        if ($arResult)
-        {
-            foreach ($arResult as $locationData)
-            {
-                $parents = (array) ArrayHelper::getValue($locationData, 'parents');
-                if (!$parents)
-                {
-                    continue;
-                }
-
-                $parent = $parents[count($parents) - 1];
-                if (!$parent)
-                {
-                    continue;
-                }
-
-                $parentId   = (string) ArrayHelper::getValue($parent, 'id');
-                $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
-
-                $this->_writeLocation($locationData, $parent, \skeeks\cms\kladr\libs\ObjectType::Street);
-            }
-        }
-
-        if (count($arResult) >= 400)
-        {
-            $this->_importStreets($char, 400 + $offset);
-        }
-    }
-
-
-
-    protected function _importBuilding()
-    {
-        /**
-         * @var $region KladrLocation
-         */
-        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-        $regions    = KladrLocation::find()->where(['type' => \skeeks\cms\kladr\libs\ObjectType::Street])->all();
-
-        foreach ($regions as $region)
-        {
-            if ($region->kladr_api_id)
-            {
-
-
-
-                    foreach ($this->_getAbs() as $char)
-                    {
-                        $query              = new \skeeks\cms\kladr\libs\Query();
-                        $query->ContentName = $char;
-                        $query->Limit       = 400;
-                        $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::Building;
-                        $query->ParentId    = $region->kladr_api_id;
-
-                        $arResult = $api->QueryToArray($query);
-
-                        if ($arResult)
-                        {
-                            foreach ($arResult as $locationData)
-                            {
-                                $this->_writeLocation($locationData, $region, \skeeks\cms\kladr\libs\ObjectType::Building);
-                            }
-                        }
-
-                    }
-
-            }
-        }
-
-
-
-
-    }
-
-    protected function _importDistricts($char)
-    {
-        /**
-         * @var $region KladrLocation
-         */
-        $api        = new \skeeks\cms\kladr\libs\Api(\Yii::$app->kladr->kladrApiToken);
-        $regions    = KladrLocation::find()->where(['type' => \skeeks\cms\kladr\libs\ObjectType::Region])->all();
-
-        foreach ($regions as $region)
-        {
-            if ($region->kladr_api_id)
-            {
-
-
-                    $query              = new \skeeks\cms\kladr\libs\Query();
-                    $query->Limit       = 400;
-                    $query->ContentName = $char;
+                    $query              = \Yii::$app->kladr->createApiQuery();
+                    $query->ContentName = \Yii::$app->request->post('char');
                     $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::District;
                     $query->ParentId    = $region->kladr_api_id;
                     $query->ParentType  = \skeeks\cms\kladr\libs\ObjectType::Region;
 
-                    $arResult = $api->QueryToArray($query);
+                    $query->offset      = \Yii::$app->request->post('offset', 0);
+                    $arResult           = \Yii::$app->kladr->createApi()->QueryToArray($query);
 
-                    if ($arResult)
+                    foreach ((array) $arResult as $locationData)
                     {
-                        foreach ($arResult as $locationData)
+                        if ( $this->_writeLocation($locationData, $region, KladrLocation::TYPE_DISTRICT) )
                         {
-                            $this->_writeLocation($locationData, $region, \skeeks\cms\kladr\libs\ObjectType::District);
+                            $rr->data['yes'] = $rr->data['yes'] + 1;
+                        } else
+                        {
+                            $rr->data['no'] = $rr->data['no'] + 1;
                         }
                     }
-
-
+                }
             }
+
+            $rr->success    = true;
+            $rr->message    = "Импорт завершен";
+
+            return $rr;
         }
+
+        return (array) $rr;
     }
 
+
+
+
+    /**
+     * Импорт городов
+     *
+     * @return array|RequestResponse
+     */
+    public function actionImportCities()
+    {
+        $rr = new RequestResponse();
+
+        if ($rr->isRequestAjaxPost())
+        {
+            $rr->data =
+            [
+                'yes'       => 0,
+                'no'        => 0,
+                'offset'    => \Yii::$app->request->post('offset', 0),
+                'total'     => 0,
+                'nextOffset'=> 0,
+            ];
+
+            if (!\Yii::$app->kladr->isReady() || !\Yii::$app->request->post('char'))
+            {
+                $rr->success = false;
+                $rr->message = "Некорректные настройки";
+
+                return $rr;
+            }
+
+            $query              = \Yii::$app->kladr->createApiQuery();
+            $query->ContentName = \Yii::$app->request->post('char');
+            $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
+            $query->WithParent  = 1;
+            $query->offset      = \Yii::$app->request->post('offset', 0);
+
+            $query->typeCode    = 1; //только города
+
+            $arResult = \Yii::$app->kladr->createApi()->QueryToArray($query);
+
+            $rr->data['total'] = count($arResult);
+
+            if (count($arResult) >= \Yii::$app->kladr->kladrRequestLimit)
+            {
+                $rr->data['nextOffset'] = $rr->data['offset'] + \Yii::$app->kladr->kladrRequestLimit;
+            }
+
+            if ($arResult)
+            {
+                foreach ($arResult as $locationData)
+                {
+
+
+                    $parents = (array) ArrayHelper::getValue($locationData, 'parents');
+                    if (!$parents)
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                        continue;
+                    }
+
+                    $parent = $parents[count($parents) - 1];
+                    if (!$parent)
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                        continue;
+                    }
+
+                    $parentId   = (string) ArrayHelper::getValue($parent, 'id');
+                    $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
+
+                    if ( $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_CITY) )
+                    {
+                        $rr->data['yes'] = $rr->data['yes'] + 1;
+                    } else
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                    }
+                }
+            }
+
+            $rr->success    = true;
+            $rr->message    = "Импорт завершен";
+
+            return $rr;
+        }
+
+        return (array) $rr;
+    }
+
+    /**
+     * Импорт поселков
+     *
+     * @return array|RequestResponse
+     */
+    public function actionImportVillages()
+    {
+        $rr = new RequestResponse();
+
+        if ($rr->isRequestAjaxPost())
+        {
+            $rr->data =
+            [
+                'yes'       => 0,
+                'no'        => 0,
+                'offset'    => \Yii::$app->request->post('offset', 0),
+                'total'     => 0,
+                'nextOffset'=> 0,
+            ];
+
+            if (!\Yii::$app->kladr->isReady() || !\Yii::$app->request->post('char'))
+            {
+                $rr->success = false;
+                $rr->message = "Некорректные настройки";
+
+                return $rr;
+            }
+
+            $query              = \Yii::$app->kladr->createApiQuery();
+            $query->ContentName = \Yii::$app->request->post('char');
+            $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
+            $query->WithParent  = 1;
+            $query->offset      = \Yii::$app->request->post('offset', 0);
+
+            $query->typeCode    = 2; //только поселки
+
+            $arResult = \Yii::$app->kladr->createApi()->QueryToArray($query);
+
+            $rr->data['total'] = count($arResult);
+
+            if (count($arResult) >= \Yii::$app->kladr->kladrRequestLimit)
+            {
+                $rr->data['nextOffset'] = $rr->data['offset'] + \Yii::$app->kladr->kladrRequestLimit;
+            }
+
+            if ($arResult)
+            {
+                foreach ($arResult as $locationData)
+                {
+
+
+                    $parents = (array) ArrayHelper::getValue($locationData, 'parents');
+                    if (!$parents)
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                        continue;
+                    }
+
+                    $parent = $parents[count($parents) - 1];
+                    if (!$parent)
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                        continue;
+                    }
+
+                    $parentId   = (string) ArrayHelper::getValue($parent, 'id');
+                    $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
+
+                    if ( $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_VILLAGE) )
+                    {
+                        $rr->data['yes'] = $rr->data['yes'] + 1;
+                    } else
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                    }
+                }
+            }
+
+            $rr->success    = true;
+            $rr->message    = "Импорт завершен";
+
+            return $rr;
+        }
+
+        return (array) $rr;
+    }
+
+
+
+    /**
+     * Импорт деревень
+     *
+     * @return array|RequestResponse
+     */
+    public function actionImportVillagesSm()
+    {
+        $rr = new RequestResponse();
+
+        if ($rr->isRequestAjaxPost())
+        {
+            $rr->data =
+            [
+                'yes'       => 0,
+                'no'        => 0,
+                'offset'    => \Yii::$app->request->post('offset', 0),
+                'total'     => 0,
+                'nextOffset'=> 0,
+            ];
+
+            if (!\Yii::$app->kladr->isReady() || !\Yii::$app->request->post('char'))
+            {
+                $rr->success = false;
+                $rr->message = "Некорректные настройки";
+
+                return $rr;
+            }
+
+            $query              = \Yii::$app->kladr->createApiQuery();
+            $query->ContentName = \Yii::$app->request->post('char');
+            $query->ContentType = \skeeks\cms\kladr\libs\ObjectType::City;
+            $query->WithParent  = 1;
+            $query->offset      = \Yii::$app->request->post('offset', 0);
+
+            $query->typeCode    = 4; //только поселки
+
+            $arResult = \Yii::$app->kladr->createApi()->QueryToArray($query);
+
+            $rr->data['total'] = count($arResult);
+
+            if (count($arResult) >= \Yii::$app->kladr->kladrRequestLimit)
+            {
+                $rr->data['nextOffset'] = $rr->data['offset'] + \Yii::$app->kladr->kladrRequestLimit;
+            }
+
+            if ($arResult)
+            {
+                foreach ($arResult as $locationData)
+                {
+
+
+                    $parents = (array) ArrayHelper::getValue($locationData, 'parents');
+                    if (!$parents)
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                        continue;
+                    }
+
+                    $parent = $parents[count($parents) - 1];
+                    if (!$parent)
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                        continue;
+                    }
+
+                    $parentId   = (string) ArrayHelper::getValue($parent, 'id');
+                    $parent     = KladrLocation::findOne(['kladr_api_id' => $parentId]);
+
+                    if ( $this->_writeLocation($locationData, $parent, KladrLocation::TYPE_VILLAGE_SMALL) )
+                    {
+                        $rr->data['yes'] = $rr->data['yes'] + 1;
+                    } else
+                    {
+                        $rr->data['no'] = $rr->data['no'] + 1;
+                    }
+                }
+            }
+
+            $rr->success    = true;
+            $rr->message    = "Импорт завершен";
+
+            return $rr;
+        }
+
+        return (array) $rr;
+    }
+
+
+
+
+
+
+
+
+    /**
+     * @param $locationData
+     * @param $parent
+     * @param $type
+     * @return bool
+     */
     protected function _writeLocation($locationData, $parent, $type)
     {
         $apiRegion = KladrLocation::findOne(['kladr_api_id' => ArrayHelper::getValue($locationData, 'id')]);
 
         if ($apiRegion)
         {
-            return;
+            return false;
         }
 
         $kladrLocation                  = new KladrLocation();
@@ -487,7 +517,7 @@ class AdminKladrLocationController extends AdminModelEditorController
         $kladrLocation->name_short      = ArrayHelper::getValue($locationData, 'name') . " " . ArrayHelper::getValue($locationData, 'typeShort');
         $kladrLocation->name_full       = ArrayHelper::getValue($locationData, 'name') . " " . ArrayHelper::getValue($locationData, 'type');
 
-        $kladrLocation->appendTo($parent)->save();
+        return (bool) $kladrLocation->appendTo($parent)->save();
     }
 
     protected function _getAbs()
