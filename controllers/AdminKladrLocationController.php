@@ -199,6 +199,8 @@ class AdminKladrLocationController extends AdminModelEditorController
                     $query->offset      = \Yii::$app->request->post('offset', 0);
                     $arResult           = \Yii::$app->kladr->createApi()->QueryToArray($query);
 
+                    $rr->data['total'] = $rr->data['total'] + count($arResult);
+
                     foreach ((array) $arResult as $locationData)
                     {
                         if ( $this->_writeLocation($locationData, $region, KladrLocation::TYPE_DISTRICT) )
