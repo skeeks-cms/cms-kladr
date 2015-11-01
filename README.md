@@ -1,28 +1,11 @@
 Kladr для SkeekS CMS
 ===================================
 
-Информация о модуле
--------------------
-
 База адресов для SkeekS CMS
 
-Установка
-------------
-
-1) Добавить в `composer.json` файл проекта.
-
-```
-"skeeks/cms-kladr": "*"
-```
-
-2) Запуск миграций и необходимых установок.
-
-```
-php yii cms/update
-```
+[Страница на SkeekS CMS Marketplace](http://marketplace.cms.skeeks.com/solutions/instrumentyi/razrabotchiku/159-baza-mestopolojeniy)
 
 
-
-> [![skeeks!](https://gravatar.com/userimage/74431132/13d04d83218593564422770b616e5622.jpg)](http://www.skeeks.com)
-<i>Быстро, просто, эффективно</i>
-[cms.skeeks.com](http://cms.skeeks.com)
+> [![skeeks!](https://gravatar.com/userimage/74431132/13d04d83218593564422770b616e5622.jpg)](http://www.skeeks.com)  
+<i>Web development has never been so fun!</i>  
+[www.skeeks.com](http://www.skeeks.com)
