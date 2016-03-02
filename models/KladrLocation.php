@@ -7,7 +7,7 @@
  */
 namespace skeeks\cms\kladr\models;
 
-use paulzi\adjacencylist\AdjacencyListBehavior;
+use paulzi\adjacencyList\AdjacencyListBehavior;
 use paulzi\autotree\AutoTreeTrait;
 use Yii;
 use yii\helpers\ArrayHelper;
