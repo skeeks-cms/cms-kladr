@@ -13,11 +13,4 @@ return [
             'class'         => 'skeeks\cms\kladr\components\KladrComponent',
         ]
     ],
-
-    'modules' =>
-    [
-        'kladr' => [
-            'class'         => 'skeeks\cms\kladr\Module',
-        ]
-    ]
 ];
