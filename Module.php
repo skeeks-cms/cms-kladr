@@ -10,18 +10,7 @@ namespace skeeks\cms\kladr;
  * Class Module
  * @package skeeks\cms\kladr
  */
-class Module extends \skeeks\cms\base\Module
+class Module extends \yii\base\Module
 {
     public $controllerNamespace = 'skeeks\cms\kladr\controllers';
-
-    /**
-     * @return array
-     */
-    static public function descriptorConfig()
-    {
-        return array_merge(parent::descriptorConfig(), [
-            "name"          => "База адресов",
-        ]);
-    }
-
 }
