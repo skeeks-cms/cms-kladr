@@ -11,6 +11,19 @@ return [
     [
         'kladr' => [
             'class'         => 'skeeks\cms\kladr\components\KladrComponent',
+        ],
+
+        'i18n' => [
+            'translations' =>
+            [
+                'skeeks/cms-kladr' => [
+                    'class'             => 'yii\i18n\PhpMessageSource',
+                    'basePath'          => '@skeeks/cms/kladr/messages',
+                    'fileMap' => [
+                        'skeeks/cms-kladr' => 'main.php',
+                    ],
+                ]
+            ]
         ]
     ],
 

@@ -132,21 +132,21 @@ class KladrLocation extends \skeeks\cms\models\Core
     public function attributeLabels()
     {
         return [
-            'id' => Yii::t('app', 'ID'),
-            'created_by' => Yii::t('app', 'Created By'),
-            'updated_by' => Yii::t('app', 'Updated By'),
-            'created_at' => Yii::t('app', 'Created At'),
-            'updated_at' => Yii::t('app', 'Updated At'),
-            'name' => Yii::t('app', 'Name'),
-            'name_short' => Yii::t('app', 'Полное название (сокр)'),
-            'name_full' => Yii::t('app', 'Полное название'),
-            'zip' => Yii::t('app', 'Zip'),
-            'okato' => Yii::t('app', 'Okato'),
-            'type' => Yii::t('app', 'Тип'),
-            'kladr_api_id' => Yii::t('app', 'Kladr Api ID'),
-            'active' => Yii::t('app', 'Active'),
-            'parent_id' => Yii::t('app', 'Родительское местоположение'),
-            'sort' => Yii::t('app', 'Sort'),
+            'id' => Yii::t('skeeks/cms-kladr', 'ID'),
+            'created_by' => Yii::t('skeeks/cms-kladr', 'Created By'),
+            'updated_by' => Yii::t('skeeks/cms-kladr', 'Updated By'),
+            'created_at' => Yii::t('skeeks/cms-kladr', 'Created At'),
+            'updated_at' => Yii::t('skeeks/cms-kladr', 'Updated At'),
+            'name' => Yii::t('skeeks/cms-kladr', 'Name'),
+            'name_short' => Yii::t('skeeks/cms-kladr', 'Полное название (сокр)'),
+            'name_full' => Yii::t('skeeks/cms-kladr', 'Полное название'),
+            'zip' => Yii::t('skeeks/cms-kladr', 'Zip'),
+            'okato' => Yii::t('skeeks/cms-kladr', 'Okato'),
+            'type' => Yii::t('skeeks/cms-kladr', 'Тип'),
+            'kladr_api_id' => Yii::t('skeeks/cms-kladr', 'Kladr Api ID'),
+            'active' => Yii::t('skeeks/cms-kladr', 'Active'),
+            'parent_id' => Yii::t('skeeks/cms-kladr', 'Родительское местоположение'),
+            'sort' => Yii::t('skeeks/cms-kladr', 'Sort'),
         ];
     }
 

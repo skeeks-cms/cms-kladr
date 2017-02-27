@@ -12,6 +12,7 @@ use skeeks\cms\modules\admin\actions\AdminAction;
 use skeeks\cms\modules\admin\controllers\AdminModelEditorController;
 use yii\grid\DataColumn;
 use yii\helpers\ArrayHelper;
+use yii\helpers\Json;
 
 /**
  * Class AdminKladrLocationController
@@ -35,38 +36,6 @@ class AdminKladrLocationController extends AdminModelEditorController
     {
         return ArrayHelper::merge(parent::actions(),
             [
-                'index' =>
-                [
-                    "columns"      => [
-                        [
-                            'class'     => DataColumn::className(),
-                            'attribute' => 'name',
-                            'format'    => 'raw',
-                            'value'     => function(KladrLocation $model)
-                            {
-                                if ($model->parent_id)
-                                {
-                                    return $model->fullName . " <small>(" . implode(", ", ArrayHelper::map($model->parents, 'id', 'fullName')) . ") </small>";
-                                } else
-                                {
-                                    return $model->fullName;
-                                }
-
-                            },
-                        ],
-
-                        [
-                            'class'     => DataColumn::className(),
-                            'attribute' => 'type',
-                            'filter'    => KladrLocation::possibleTypes(),
-                            'value'     => function(KladrLocation $model)
-                            {
-                                return $model->typeName;
-                            },
-                        ]
-                    ],
-                ],
-
                 'update-database' =>
                 [
                     "class"         => AdminAction::className(),
@@ -513,13 +482,23 @@ class AdminKladrLocationController extends AdminModelEditorController
 
         $kladrLocation                  = new KladrLocation();
         $kladrLocation->kladr_api_id    = ArrayHelper::getValue($locationData, 'id');
-        $kladrLocation->name            = ArrayHelper::getValue($locationData, 'name');
-        $kladrLocation->zip             = ArrayHelper::getValue($locationData, 'zip');
+        $kladrLocation->name            = (string) ArrayHelper::getValue($locationData, 'name');
+        $kladrLocation->zip             = (string) ArrayHelper::getValue($locationData, 'zip');
+        $kladrLocation->okato           = (string) ArrayHelper::getValue($locationData, 'okato');
         $kladrLocation->type            = $type;
         $kladrLocation->name_short      = ArrayHelper::getValue($locationData, 'name') . " " . ArrayHelper::getValue($locationData, 'typeShort');
         $kladrLocation->name_full       = ArrayHelper::getValue($locationData, 'name') . " " . ArrayHelper::getValue($locationData, 'type');
 
-        return (bool) $kladrLocation->appendTo($parent)->save();
+        $kladrLocation->appendTo($parent);
+
+        if ($kladrLocation->save())
+        {
+            return true;
+        } else
+        {
+            \Yii::error('Ошибка добавления местоположения: ' . Json::encode($kladrLocation->errors), self::class);
+            return false;
+        }
     }
 
     protected function _getAbs()

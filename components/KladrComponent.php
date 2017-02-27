@@ -33,21 +33,16 @@ class KladrComponent extends Component
 
     public function renderConfigForm(ActiveForm $form)
     {
-        echo $form->fieldSet(\Yii::t('skeeks/seo', 'Keywords'));
 
-            echo $form->field($this, 'kladrApiToken');
-            echo $form->field($this, 'kladrRequestLimit');
-            echo $form->field($this, 'russiaId')->listBox(
-                \yii\helpers\ArrayHelper::map(\skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY])->all(),
-                'id', 'name'),
-                [
-                    'size' => 1
-                ]
-            );
-
-        echo $form->fieldSetEnd();
-
-
+        echo $form->field($this, 'kladrApiToken');
+        echo $form->field($this, 'kladrRequestLimit');
+        echo $form->field($this, 'russiaId')->listBox(
+            \yii\helpers\ArrayHelper::map(\skeeks\cms\kladr\models\KladrLocation::find()->where(['type' => \skeeks\cms\kladr\models\KladrLocation::TYPE_COUNTRY])->all(),
+            'id', 'name'),
+            [
+                'size' => 1
+            ]
+        );
     }
     /**
      * @var string
