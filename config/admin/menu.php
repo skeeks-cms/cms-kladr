@@ -26,7 +26,7 @@ return [
                     [
                         "label" => "Настройки",
                         "url"   => ["cms/admin-settings", "component" => 'skeeks\cms\kladr\components\KladrComponent'],
-                        "img"       => ['\skeeks\cms\modules\admin\assets\AdminAsset', 'images/icons/settings.png'],
+                        "img"       => ['skeeks\cms\assets\CmsAsset', 'images/icons/settings.png'],
                         "activeCallback"       => function($adminMenuItem)
                         {
                             return (bool) (\Yii::$app->request->getUrl() == $adminMenuItem->getUrl());
