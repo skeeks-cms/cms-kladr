@@ -25,5 +25,11 @@
         "psr-4": {
             "skeeks\\cms\\kladr\\": ""
         }
+    },
+    "extra": {
+        "config-plugin": {
+            "web": "config/main.php",
+            "console": "config/main-console.php"
+        }
     }
 }
